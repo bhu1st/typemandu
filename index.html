@@ -1,0 +1,810 @@
+<html>
+
+<head>
+
+	<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+	<meta name="keywords" content="TypeMandu, HTML5, Canvas, keyboard, typing tutor, middle school" />
+	<meta name="description" content="TypeMandu Typing Tutor - An Open Source HTML5 Canvas Typing Tutor for beginners." />
+	<title>TypeMandu Typing Tutor by BugCrew</title>
+
+	<style type="text/css">
+		body {
+			background-color: #000;
+		}
+
+		.legends {
+			clear: both;
+			width: 900px;
+			margin: 15px auto 20px auto;
+		}
+
+		#lesson {
+			margin-bottom: 10px;
+			color: #622c82;
+			width: 400px;
+			float: left;
+			font-weight: 700;
+			font-size: 20px;
+		}
+
+		#wpm {
+			margin-bottom: 10px;
+			color: #00ff00;
+			width: 400px;
+			font-weight: 700;
+			font-size: 20px;
+			float: right;
+			text-align: right;
+		}
+
+		#wrapper {
+			clear: both;
+			margin: 20px auto 0px auto;
+			width: 900px;
+			border: 2px solid #999;
+
+		}
+
+		.lessons-button {
+			margin: 10px auto 0px auto;
+			width: 900px;
+			text-align: center;
+		}
+
+		.btn {
+			display: inline-block;
+			padding: 5px 12px;
+			margin-bottom: 0;
+			font-size: 14px;
+			line-height: 20px;
+			text-align: center;
+			text-shadow: 0 1px 1px rgba(255, 255, 255, 0.75);
+			vertical-align: middle;
+			cursor: pointer;
+			border: 1px solid #bbbbbb;
+			-webkit-border-radius: 4px;
+			-moz-border-radius: 4px;
+			border-radius: 4px;
+			-webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
+			-moz-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.05);
+		}
+
+		.btn-success {
+			color: #ffffff;
+			text-shadow: 0 -1px 0 rgba(0, 0, 0, 0.25);
+			background-color: #622c82;
+			border-color: #622c82;
+		}
+
+
+		#footer {
+			color: #fff;
+			text-align: center;
+			font-size: 11px;
+		}
+
+		#footer a {
+			font-weight: bold;
+			color: #fff;
+		}
+	</style>
+
+	<script type="text/javascript">
+
+		/*
+		 Reference: 
+		 
+		 onscreen-keyboard-html5-canvas-multitouch
+		 https://github.com/justinribeiro/onscreen-keyboard-html5-canvas-multitouch
+		 
+		 Typing Lessons Reference
+		 https://www.learntyping.org/
+	
+		 March 14th 2023
+		*/
+
+		var canvas;
+		var ctx;
+		var w = 0;
+		var h = 0;
+		const framerate = 30;
+		var wrongKeyAudio, enterAudio;
+
+		var keyWidth = 50;
+		var keyHeight = 50;
+		var rowOffset = 10;
+		var keyOffset = 10;
+		var keyColorFill = "#707070";
+		var alphaKeyColorFill = "#c0c0c0";
+		var keyStrokeFill = "#00ff00";
+
+		var startDrawX = 10;
+		var startDrawY = 150;
+
+		var shiftToggle = false;
+		var capsToggle = false;
+		var shiftKeyactive = false;
+		var cursorInit = 40;
+		var cursorShift = 40;
+		var alterCursor = 0;
+		var charIndex = 0;
+		var lessonIndex = 0;
+		var subLessonIndex = 0;
+		var startTime = 0, endTime = 0;
+		var countSpace = 0;
+
+
+		var keys = [];
+		var shiftKey = "";
+		var keyInUse = [];
+		var lessons = [];
+
+		//Intro
+		lessons[0] = [];
+		lessons[0][0] = "Welcome to TypeMandu Typing Tutor!";
+		lessons[0][1] = "the quick brown fox jumps over the lazy dog.";
+		lessons[0][2] = "The quick brown fox jumps over the lazy dog.";
+		lessons[0][3] = "The Quick Brown Fox Jumps Over The Lazy Dog.";
+
+		//Lessons 1
+		lessons[1] = [];
+		lessons[1][0] = "ffff dddd ssss aaaa ffff dddd ssss aaaa ffff dddd ssss aaaa";
+		lessons[1][1] = "ff dd ss aa ff dd ss aa ff d ff d ff s ff s ff a ff a";
+		lessons[1][2] = "fdsa fdsa fdsa fdsa fdsa fdsa fdsa fdsa";
+		lessons[1][3] = "asdf asdf asdf asdf asdf asdf asdf asdf asdf asdf";
+		lessons[1][4] = "fads dafs safd dsaf fasd adfs sdaf afds fdsa";
+		lessons[1][5] = "jjj kkk lll ;;; jjj kkk lll ;;; jjj kkk lll ;;;jj kk ll ;; jj kk ll ;;";
+		lessons[1][6] = "jj kk ll ;; jj kk ll ;; jj k jj l jj ; j k l ; j k l ; jjj kkk ll ;;";
+		lessons[1][7] = "jkl; jkl; jkl; jkl; jkl; jkl; jkl; jkl; jkl; jkl; jkl; jkl;";
+		lessons[1][8] = ";lkj ;lkj ;lkj ;lkj ;lkj ;lkj ;lkj ;lkj ;lkj ;lkj ;lkj ;lkj ;lkj";
+		lessons[1][9] = "fad fads lad lads lass alas salad salads dad dads lad lads salads alas";
+		lessons[1][10] = "ad add ads adds as ask asks la lad lads lass da dad dada dada sa sad salad";
+		lessons[1][11] = "all fall falls alf alfa alfas fad fads salsa ska skald skalds flak flask flasks";
+		lessons[1][12] = "deed frrf deer reed red deed frrf deer reed red deed frrf deer reed red";
+		lessons[1][13] = "free freed fred feed fed free freed fred feed fed free freed fred feed fed";
+		lessons[1][14] = "reef reef ref ref refer refer defer defer referred deferred refereed";
+		lessons[1][15] = "juuj juuj juju juju kiik kiik kiki kiki juki juki kiju kiju jiku jiku juik juik ijku";
+		lessons[1][16] = "jj uu kk ii jj uu kk ii jk jk ui ui jk jk ui ui jk ui jk ui ijku ujik ukij ujik ikij ikiu";
+		lessons[1][17] = "jkjlj jkjljl liku liku liku jilk jilk julk julk lulu lulu julu julu iklu ilku ilkj ilkj";
+		lessons[1][18] = "jude jude dud dud dude dude rude rude due due rudder rudder";
+		lessons[1][19] = "fur fur fir fir fire fire fired fired ride ride fried fried rider rider";
+		lessons[1][20] = "kid kid did did die die died died dried dried ride ride drier drier";
+		lessons[1][21] = "udder judder jerked dried rife dune kidder kiddie dire drier jeer jeered";
+		lessons[1][22] = "reek reeked tried tire retire retired kirk june feud fuji deride juried";
+		lessons[1][23] = "red deer feeder; feed freddie; red fire; free feed; fried deer; dier ride;";
+		lessons[1][24] = "eddie died; free ride; eddie fired fred; did eddie die; dier rider fried;";
+		lessons[1][25] = "edifier rider dude freed red fur deer; kidder eddie rudder fed red deer;";
+		lessons[1][26] = "freed fed red deer died; referrer fred fuji fried freed fed red deer;";
+		lessons[1][27] = "duke jeered rude referee jed; did irked kirk fire rude jerk; jude dried;";
+		lessons[1][28] = "did freddie duke feed jeff kirk free fried red deer; fed rider dude;s";
+		lessons[1][29] = "rude eddie kerr jeered duke kirk; kidder eddie rudder fed red deer;";
+
+		//Lessons 2
+		lessons[2] = [];
+		lessons[2][0] = "fg fg fg fgf fgt fg ft ft ft dfg dfgt dft dft";
+		lessons[2][1] = "frt frt frt frtg frtg frtg fgt fgt fgt";
+		lessons[2][2] = "dfrt dfrt dfrt dfrt dert dert dert dert";
+		lessons[2][3] = "jhj jhj jhj jhj jujhj jujhj jujhj jujhj hijk hujk hijk hujk";
+		lessons[2][4] = "jhjkik jhjkik jhjkik kikjuj kikjuj kikjuj jujkik jujkik";
+		lessons[2][5] = "jhik jhik jhik jihk jihk jihi jihi jihi kih kih kih huhi huhi";
+		lessons[2][6] = "fg jh fg jh ft jh fgt fgt fgt ght ght ght th th th";
+		lessons[2][7] = "grit gritted thrift drift thru true fudge trig trigger hike trike kite true truth";
+		lessons[2][8] = "feet fret get greet regret regretted rift drift gift gifted fig figure hit fit fitter";
+		lessons[2][9] = "dirt diet tire tired retire retired tried he her here the thee these there their";
+		lessons[2][10] = "jut jutted jud jug judge judged hug huge hugged dug drug drugged grudge";
+		lessons[2][11] = "ugh high higher thigh tight fight right fright tight height eighth hut hurt";
+		lessons[2][12] = "freddie tried the fridge; the right fridge; keith agreed; the huge free feed;";
+		lessons[2][13] = "red jug; guide the tight red kite higher; the hired guide urged the rugged hiker;";
+		lessons[2][14] = "the right judge; the third huge tiger tried; true ruth tried the third free gift;";
+		lessons[2][15] = "fff ddd sss www fff ddd sss www fff ddd sss www";
+		lessons[2][16] = "fds fds fdsw fdsw frf ded sws frf ded sws frf ded sws";
+		lessons[2][17] = "fdd fss ree rww rww rew rew rews rews dew dews";
+		lessons[2][18] = "ffds ffds ffdsw fdsw fds fdsw wsdf wsdf sdf fdsdf fdsdf";
+		lessons[2][19] = "ffss ffss ffsf ff ssf ff ssf fdsdf fdsdf frf ded sws";
+		lessons[2][20] = "juj juj jujyj jujyj jyj jhj jhj jhjyj jhjyj jujhj jujhj ujh ujh";
+		lessons[2][21] = "jklol jklol jklol lol lol lol lol jujhj klol jujhj klol kol kol";
+		lessons[2][22] = "jhyhj jhyhj jhjyj juj jyj jhj jyj jyj jij jij jklkjyj jklkjyj";
+		lessons[2][23] = "sweet sweets sweeter swede tweed tweet tweets tweeted street streets";
+		lessons[2][24] = "ewe ewes sew sews resew sewed stew stewed strew strewed grew";
+		lessons[2][25] = "few fewer fewest free frees freer fret fretted fest fester test tester";
+		lessons[2][26] = "we wee were wet wets west wrest rests wed rewed weed weeds";
+		lessons[2][27] = "dew dews drew deer dreg wed weds wedge wedges dress dresses dresser";
+		lessons[2][28] = "lo lo oh oh yo yo oi oil oily hoy yuk you ilk joy yolk killjoy kook kooky";
+		lessons[2][29] = "lull hull hulk hulky loo look hoy holy holly jolly lolly hook hooky hullo";
+		lessons[2][30] = "ill ill kill kill hill jill jill jill ilk ilk ilk oil oily joy joy lily lily jokily jokily";
+		lessons[2][31] = "juj jyyj joy toy roy try fry juj jyyj joy toy roy try fry juj jyyj joy toy roy try fry fly why";
+		lessons[2][32] = "soy soil silly soul souls well wells yell yells swell swells wile wily while sty stye style stole";
+		lessons[2][33] = "wet wets jet jets jest jester yes let lets letters wet wets jet jets jest jester yes let lets letters";
+		lessons[2][34] = "destroy westerly folly golly holly jolly swilly you your dirty dusty rusty yell yelled yellow";
+		lessons[2][35] = "hole whole while whist whistle when trolley trill thrill";
+		lessons[2][36] = "rolls tolls folds holds shoulders sisters swifter sword";
+		lessons[2][37] = "try jury hurry hurt hut shut shutter shy fly flier joyous";
+		lessons[2][38] = "sky fry grey fry shy dry why shy hilly lilly frilly dolly";
+		lessons[2][39] = "eighty joyful judges foiled the witty jokers with two wise words;";
+		lessons[2][40] = "this is why sly joy wilson just took the first july flight out;";
+		lessons[2][41] = "yes tough wily willis fought foolishly to destroy freddy kelly;";
+		lessons[2][42] = "while wise freddy hurriedly hid when his witty jokes died horridly;";
+		lessons[2][43] = "jills silly white dog juke liked toy dolls hiding them in his woody dog house;";
+		lessons[2][44] = "jolly jerry juggled two yellow sticks while he rode two wild horses;";
+		lessons[2][45] = "the rest of the rowdy lost yodellers followed terry out of the west forest;";
+
+		//Lessons 3
+		lessons[3] = [];
+		lessons[3][0] = "fvf frfvf fbf frfbf rev vet fvf frfvf fbf frfbf rev vet";
+		lessons[3][1] = "five fiver fib fibber fibre very every five fiver fib fibber fibre very every everyone";
+		lessons[3][2] = "jmj jujmj jnj jujnj jmj jujmj jnj jujnj";
+		lessons[3][3] = "jim him kim tim rim trim hem them jim him kim tim rim trim hem them";
+		lessons[3][4] = "jnj jujnj tin fin din dint tint jnj jujnj tin fin din dint dinted tin tint tinted";
+		lessons[3][5] = "ten tent often den dent over oven ten tent often den dent over oven";
+		lessons[3][6] = "men mend mended mine mind moment remember mend mended mine mind;";
+		lessons[3][7] = "ou ough rough tough trough enough ou ough rough tough trough enough";
+		lessons[3][8] = "though thought through thorough though thought through thorough";
+		lessons[3][9] = "mouse mousey mount mound mounds mouse mousey mount mound mounds";
+		lessons[3][10] = "round rounds sound resounded round rounds sound resounded bound rebound";
+		lessons[3][11] = "ion lion mention vision visions ion lion mention vision visions enliven enlivens";
+		lessons[3][12] = "iou ious conscious envious mission missions iou ious conscious envious missions";
+		lessons[3][13] = "blows blues blown blume blouse ebony elbows bones boney bonus boils bile bitten";
+		lessons[3][14] = "savvy john johnston bravely mentioned the lions and tigers; they looked very tough;";
+		lessons[3][15] = "the little brown mouse went round the house which stood beside the high mound;";
+		lessons[3][16] = "i remember the big mission home which is built on the high ground beyond the valley;";
+		lessons[3][17] = "i rested in my house before playing two rounds of golf; would love to win;";
+
+		//Lessons 4
+		lessons[4] = [];
+		lessons[4][0] = "ded dcd ded cdc dedcd dedcd decided deck decks decked check checks cheese chest";
+		lessons[4][1] = "cheek check checked creek creeks dice diced slice sliced twice nice mince minced";
+		lessons[4][2] = "type slowly with correct fingers; check the colours in the finger columns;";
+		lessons[4][3] = "notice concisely which finger should type the correct letter key you need;";
+		lessons[4][4] = "when you come to tricky words type them more times; then check them twice";
+		lessons[4][5] = "The full stop is on the bottom row. Find the ring finger on your right hand.";
+		lessons[4][6] = "Commas get you thinking, believing. Reach to the left of the full stop. Good.";
+		lessons[4][7] = "Stretch your longest finger. When beginning new lines, hit the Enter key once.";
+		lessons[4][8] = "Find and hold the Right Shift key for these left hand capitals.";
+		lessons[4][9] = "Be careful. Try to keep your fingers curved. Very nice.";
+		lessons[4][10] = "Do not let your wrists rest on the desk. That is not good use of energy.";
+		lessons[4][11] = "Which brings us close, very, very close, to the end of this beginner lesson.";
+		lessons[4][12] = "Do not type for too long without stretching your shoulders, neck, wrists, fingers.";
+		lessons[4][13] = "Keep your legs Uncrossed while doing these drills. It is good ergonomics.";
+		lessons[4][14] = "Keep both of your feet firmly on the vinyl floor. Get your body in mint condition.";
+		lessons[4][15] = "Keep both of your feet firmly on the vinyl floor. Get your body in mint condition.";
+		lessons[4][16] = "It helps if you remember which finger is for which key. Every one counts.";
+		lessons[4][17] = "Otherwise you might finish with clumsy, unnecessary errors.";
+		lessons[4][18] = "Look before you cross the street or you might get knocked down.";
+		lessons[4][19] = "Jimmy Colven drove Henry Dempsy to town to buy some new comic books.";
+		lessons[4][20] = "He bought forty five mind thrilling editions to review for his collection.";
+
+		//Lessons 5
+		lessons[5] = [];
+		lessons[5][0] = "faf far fat fatter far farmer faf far fat fatter far farmer frame fame famine fade";
+		lessons[5][1] = "fan ran tan jan land hand band fan ran tan jan land hand band sand banner";
+		lessons[5][2] = "pot port pit put pop pup puppy pot port pit put pop pup puppy poppy pappy";
+		lessons[5][3] = "purr top rope romp trap tramp trumpet purr top rope romp trap tramp trumpet";
+		lessons[5][4] = "fig rig tig pig got grip grab grasp green fig rig tig pig got grip grab grasp green";
+		lessons[5][5] = "ring ding dong song sang singer arrange ring ding dong song sang singer range";
+		lessons[5][6] = "quit quite quiet quill queen quilt quest quit quite quiet quill queen quilt quest";
+		lessons[5][7] = "quote quoted equate equation equal quack quaint quote quoted equate equation";
+		lessons[5][8] = "zoo zulu zigzag fax tax text exit mix fix zoo zulu zigzag fax tax text exit mix fix";
+		lessons[5][9] = "six zoom boxes gizmo mixed maze raze lax flax size mixes zit sox zany lazy yax";
+		lessons[5][10] = "We took the children to see zebras and giraffes at the zoo last Friday. They had fun.";
+		lessons[5][11] = "Make sure you type the correct text in your document or it will not make sense.";
+		lessons[5][12] = "I hope the Learn Typing course has made your typing experience so much better.";
+		lessons[5][13] = "If you enjoyed this typing course please tell others who would find it helpful.";
+
+		//Lessons 6
+		lessons[6] = [];
+		lessons[6][0] = "For the question mark, hold down the left Shift key while you type the / key.";
+		lessons[6][1] = "For the exclamation mark, hold down the right Shift key while you type the 1 key.";
+		lessons[6][2] = "The colon is on the semi-colon key and needs the left Shift key held.";
+		lessons[6][3] = "For the dash and for the hyphen use the same upper row key, between 0 and =";
+		lessons[6][4] = "The single quotation mark (beside the colon) is also used for the apostrophe.";
+		lessons[6][5] = "For the double quotation mark first hold down the Left Shift key.";
+		lessons[6][6] = "If you practise your typing each day, it will soon become easy.";
+		lessons[6][7] = "Instead of a comma - you could use the dash - above the P key.";
+		lessons[6][8] = "Join for hyphen. First-class. Did you enjoy this typing course? I hope so!";
+		lessons[6][9] = "\"Hullo,\" said Julia to George. \"Isn\'t it a really lovely day?\"";
+		lessons[6][10] = "\"Stop! There's too much noise! It's giving me a headache!\"";
+		lessons[6][11] = "Press down the Caps Lock (above the Left Shift key) for full capitals headings.";
+		lessons[6][12] = "Press to release.";
+		lessons[6][13] = "Press the Tab key (above the Caps Lock) to jump across the page to line up lists.";
+		lessons[6][14] = "MONDAY";
+		lessons[6][15] = "TUESDAY";
+		lessons[6][16] = "WEDNESDAY";
+		lessons[6][17] = "THURSDAY";
+		lessons[6][18] = "FRIDAY";
+		lessons[6][19] = "SATURDAY";
+		lessons[6][20] = "Swimming";
+		lessons[6][21] = "Football";
+		lessons[6][22] = "Drama";
+		lessons[6][23] = "Golf";
+		lessons[6][24] = "Cricket";
+		lessons[6][25] = "Badminton";
+		lessons[6][26] = "Tennis";
+		lessons[6][27] = "Basketball";
+		lessons[6][28] = "Cheesecake";
+		lessons[6][29] = "BROCCOLI";
+		lessons[6][30] = "Chicken";
+		lessons[6][31] = "SAUSAGE";
+		lessons[6][32] = "Pizza";
+		lessons[6][33] = "Rice";
+		lessons[6][34] = "Fish n Chips";
+		lessons[6][35] = "Pizza";
+		lessons[6][36] = "Brackets. ( ) are above 9 and 0 - hold the Shift key while you type these.";
+		lessons[6][37] = "And these { } are beside P near the Shift key. { } P { } P { } P { } P { }";
+		lessons[6][38] = "Hold the {Shift} key while you type these { }.";
+		lessons[6][39] = "[ ] do not need the Shift key so are easier. [ ] Just [RIGHT] of the [P] key.";
+		lessons[6][41] = "They are on the same keys as { } to the right of [P].";
+		lessons[6][42] = "To Underline words first click the mouse on the U on the toolbar.";
+		lessons[6][43] = "You can also click on B for Bold, or I for Italics.";
+		lessons[6][44] = "Repeat this action (with the mouse) when you want this feature to stop.";
+
+		//Lessons 7
+		lessons[7] = [];
+		lessons[7][0] = "th the there these their this that this is; that is; these are; they were;";
+		lessons[7][1] = "they are; there is; with those thistle father other whether leather";
+		lessons[7][2] = "is his this is his; this is his; is this his; is this his; wish list mist;";
+		lessons[7][3] = "this list; his list; lists wish dish fish wrist fist kiss kissed missed";
+		lessons[7][4] = "fist wrist list listed twist twisted twister this is a twister mister;";
+		lessons[7][5] = "all wall walls fall falls hall halls taller tallest call calls stall stalls";
+		lessons[7][6] = "all tall stall stalls stalled walls; all tall walls fall; hallowed";
+		lessons[7][7] = "wh where whether who whose what whole where whether weather";
+		lessons[7][8] = "whose what whole whew while whist whilst whistle whither whale";
+		lessons[7][9] = "et wet wetter set sets setter get regrets jet let letter better kettle";
+		lessons[7][10] = "ill kill jill hill fills sills rills till trill trills will bill tiller filler follow";
+		lessons[7][11] = "ttle wattle rattle rattles tattle tattles little kettle settle settler";
+		lessons[7][12] = "sh she shell shells shelter shelters sheet sheets shift shaft daft";
+
+		//Rewards!
+		lessons[8] = [];
+		lessons[8][0] = "Congratulations on completing all the lessons, please star on Github and share.";
+
+
+		// for the sake of this example, we just have an object that defined the rows and keys inline
+		// ideally, you add the key setup + defs in an JSON file, and then load it up
+		// allowing multiple keyboards of any type. Not clever, just common sense really.
+		var myKeyboard = {
+			"rows": [
+				{
+					"keys": [
+						{ "startKey": "`", "shiftKey": "~" },
+						{ "startKey": "1", "shiftKey": "!" },
+						{ "startKey": "2", "shiftKey": "@" },
+						{ "startKey": "3", "shiftKey": "#" },
+						{ "startKey": "4", "shiftKey": "$" },
+						{ "startKey": "5", "shiftKey": "%" },
+						{ "startKey": "6", "shiftKey": "^" },
+						{ "startKey": "7", "shiftKey": "&" },
+						{ "startKey": "8", "shiftKey": "*" },
+						{ "startKey": "9", "shiftKey": "(" },
+						{ "startKey": "0", "shiftKey": ")" },
+						{ "startKey": "-", "shiftKey": "_" },
+						{ "startKey": "=", "shiftKey": "+" },
+						{ "startKey": "", "shiftKey": "DELETE", "type": 1, "w": 80 }
+					]
+				},
+				{
+					"keys": [
+						{ "startKey": "", "shiftKey": "TAB", "type": 2, "w": 80 },
+						{ "startKey": "q", "shiftKey": "Q" },
+						{ "startKey": "w", "shiftKey": "W" },
+						{ "startKey": "e", "shiftKey": "E" },
+						{ "startKey": "r", "shiftKey": "R" },
+						{ "startKey": "t", "shiftKey": "T" },
+						{ "startKey": "y", "shiftKey": "Y" },
+						{ "startKey": "u", "shiftKey": "U" },
+						{ "startKey": "i", "shiftKey": "I" },
+						{ "startKey": "o", "shiftKey": "O" },
+						{ "startKey": "p", "shiftKey": "P" },
+						{ "startKey": "[", "shiftKey": "{" },
+						{ "startKey": "]", "shiftKey": "}" },
+						{ "startKey": "\\", "shiftKey": "|" }
+					]
+				},
+				{
+					"keys": [
+						{ "startKey": "", "shiftKey": "CAPS", "type": 4, "w": 90 },
+						{ "startKey": "a", "shiftKey": "A" },
+						{ "startKey": "s", "shiftKey": "S" },
+						{ "startKey": "d", "shiftKey": "D" },
+						{ "startKey": "f", "shiftKey": "F" },
+						{ "startKey": "g", "shiftKey": "G" },
+						{ "startKey": "h", "shiftKey": "H" },
+						{ "startKey": "j", "shiftKey": "J" },
+						{ "startKey": "k", "shiftKey": "K" },
+						{ "startKey": "l", "shiftKey": "L" },
+						{ "startKey": ";", "shiftKey": ":" },
+						{ "startKey": "'", "shiftKey": "\"" },
+						{ "startKey": "", "shiftKey": "ENTER", "type": 5, "w": 100 }
+					]
+				},
+				{
+					"keys": [
+						{ "startKey": "", "shiftKey": "SHIFT", "type": 6, "w": 120 },
+						{ "startKey": "z", "shiftKey": "Z" },
+						{ "startKey": "x", "shiftKey": "X" },
+						{ "startKey": "c", "shiftKey": "C" },
+						{ "startKey": "v", "shiftKey": "V" },
+						{ "startKey": "b", "shiftKey": "B" },
+						{ "startKey": "n", "shiftKey": "N" },
+						{ "startKey": "m", "shiftKey": "M" },
+						{ "startKey": ",", "shiftKey": "<" },
+						{ "startKey": ".", "shiftKey": ">" },
+						{ "startKey": "/", "shiftKey": "?" },
+						{ "startKey": "", "shiftKey": "SHIFT", "type": 7, "w": 130 }
+					]
+				},
+				{
+					"keys": [
+
+						{ "startKey": "", "shiftKey": "CTRL", "type": 8, "w": 55 },
+						{ "startKey": "", "shiftKey": "FN", "type": 8, "w": 55 },
+						{ "startKey": "", "shiftKey": "WIN", "type": 10, "w": 50 },
+						{ "startKey": "", "shiftKey": "ALT", "type": 11, "w": 50 },
+						{ "startKey": "", "shiftKey": "", "type": 12, "w": 290 },
+						{ "startKey": "", "shiftKey": "ALT", "type": 11 },
+						{ "startKey": "", "shiftKey": "CTRL", "type": 8 },
+						{ "startKey": "", "shiftKey": "", "type": 13, "w": 90 },
+						{ "startKey": "", "shiftKey": "", "type": 14, "w": 90 }
+
+					]
+				}
+			]
+		};
+
+		//this is a key
+		function Key() {
+			this.x;
+			this.y;
+			this.w;
+			this.h;
+			this.key;
+			this.shift;
+			this.type;
+			this.colorfill = null;
+		}
+
+		//let's add a key to the board shall we
+		function addKey(x, y, w, h, key) {
+			var keyMe = new Key;
+			keyMe.x = x;
+			keyMe.y = y;
+			keyMe.w = w;
+			keyMe.h = h;
+			keyMe.key = key.startKey;
+			keyMe.shift = key.shiftKey;
+			keyMe.type = key.type;
+			keys.push(keyMe);
+		}
+
+		// this draws a particular key on the canvas
+		function drawKey(context, key) {
+
+			if (key.type >= 1)
+			{
+				context.fillStyle = keyColorFill;
+			}
+			else 
+			{
+				context.fillStyle = alphaKeyColorFill;
+			}
+
+			context.fillRectR(key.x, key.y, key.w, key.h);
+			keyThisYo = key.key;
+
+			if (key.key.toLowerCase() != key.shift.toLowerCase()) 
+			{
+				context.font = "12px sans serif"
+				context.fillStyle = "#ffffff";
+				context.fillText(key.shift, key.x + 10, key.y + 20);
+			}
+			else
+			{
+				if (shiftToggle == true || capsToggle == true) 
+				{
+					keyThisYo = key.shift;
+				}
+			}
+
+			context.font = "16px sans serif"
+			context.fillStyle = "#ffffff";
+			context.fillText(keyThisYo, key.x + 30, key.y + 35);
+
+			//Key feedback
+						
+			if (key.type == 5 && charIndex == lessons[lessonIndex][subLessonIndex].length ) 
+			{
+				triggerKey(context, key, 0);		
+			}
+
+			if (key.type == 6) 
+			{
+				shiftKey = key;				
+			}
+
+			if (key.type == 12 && lessons[lessonIndex][subLessonIndex][charIndex] == " ") 
+			{
+				triggerKey(context, key, 0);
+			}
+
+			if (lessons[lessonIndex][subLessonIndex][charIndex] == key.key) 
+			{
+				triggerKey(context, key, 0);
+			}
+
+			else if (lessons[lessonIndex][subLessonIndex][charIndex] == key.shift) 
+			{
+				triggerKey(context, key, 0);
+				triggerKey(context, shiftKey, 0);
+			}
+
+		}
+
+		// highlight keys to be pressed.
+		function triggerKey(context, key, flag) 
+		{
+
+			ctx.lineWidth = 3;
+			context.strokeStyle = keyStrokeFill;
+			context.strokeRectR(key.x, key.y, key.w, key.h);
+		
+		}
+
+		//draw the entire keyboard
+		function drawKeyboard() {
+			var l = keys.length;
+			for (var i = 0; i < l; i++) {
+				drawKey(ctx, keys[i]);
+			}
+		}
+
+		//where the action and drawing happens
+		function draw() {
+			var nw = canvas.parentElement.clientWidth; //window.innerWidth;
+			var nh = canvas.parentElement.clientHeight; //window.innerHeight;
+
+
+			if ((w != nw) || (h != nh)) {
+				w = nw;
+				h = nh;
+				canvas.style.width = w + 'px';
+				canvas.style.height = h + 'px';
+				canvas.width = w;
+				canvas.height = h;
+			}
+
+
+			ctx.clearRect(0, 0, w, h);
+
+			drawKeyboard();
+
+			ctx.font = "20px sans serif";
+			ctx.textBaseline = "middle";
+			ctx.fillStyle = "#ffffff";
+			ctx.fillText(lessons[lessonIndex][subLessonIndex], 35, 30);
+			//ctx.strokeStyle = "#ffffff";		
+			//ctx.strokeRect(20,50,860,70);
+
+			putCursor();
+
+			document.addEventListener('keypress', doKeyDown, true);
+
+			var typedChars = lessons[lessonIndex][subLessonIndex].substring(0, charIndex);
+			ctx.fillStyle = "#00ff00";
+			ctx.fillText(typedChars, cursorInit, 90);
+			cursorShift = cursorInit + ctx.measureText(typedChars).width;
+
+			var t = new Date();
+			endTime = t.getTime();
+			time = (endTime - startTime);
+
+			document.getElementById('lesson').innerHTML = "Lesson: " + (lessonIndex > 0 ? lessonIndex : "Intro");
+			document.getElementById('wpm').innerHTML = parseInt(((countSpace * 60000) / time)) + " WPM";
+
+		}
+
+		function doKeyDown(e) //keyboard event
+		{
+
+			keyChar = String.fromCharCode(e.keyCode);
+			
+			if (e.keyCode == 13 && charIndex == lessons[lessonIndex][subLessonIndex].length) {
+				charIndex = 0;
+				cursorShift = cursorInit;
+				subLessonIndex++;
+
+				if (lessons[lessonIndex].length == subLessonIndex) {
+					lessonIndex++;
+					subLessonIndex = 0;
+
+					if (lessonIndex >= lessons.length) {
+						lessonIndex = 0;
+					}
+
+				}
+
+				enterAudio.play();
+				return true;
+			}
+
+			if (lessons[lessonIndex][subLessonIndex][charIndex] == keyChar) {
+				if (lessons[lessonIndex][subLessonIndex][charIndex] == " ") countSpace++;
+				charIndex++;
+			}
+			else {
+				wrongKeyAudio.play();
+			}
+
+		}
+
+		function putCursor() {
+			if (alterCursor % 2 == 0) {
+				ctx.fillStyle = "#ffffff";
+			}
+			else {
+				ctx.fillStyle = "#666666";
+			}
+
+			ctx.fillText("_", cursorShift, 90);
+
+			//console.log(new Date().getTime() + "cursorShift:" + cursorShift);
+
+			alterCursor++;
+			if (alterCursor > 100) alterCursor = 0;
+
+		}
+
+		function loadUp() {
+			canvas = document.getElementById('canvas');
+			ctx = canvas.getContext('2d');
+
+			canvas.onselectstart = function () { return false; }
+
+			//every keyboard needs a click clack key press sound
+			wrongKeyAudio = document.createElement('audio');
+			wrongKeyAudio.setAttribute('src', 'error.wav');
+			wrongKeyAudio.load();
+			wrongKeyAudio.playbackRate = 2;
+
+			//every keyboard needs a click clack key press sound
+			enterAudio = document.createElement('audio');
+			enterAudio.setAttribute('src', 'enter.wav');
+			enterAudio.load();
+
+
+			// JDR: loop over the keyboard object and get some rows of keys
+			var j, rl = myKeyboard.rows.length;
+			for (j = 0; j < rl; j++) {
+
+				// JDR: loop over the keys in a row
+				var h, kl = myKeyboard.rows[j].keys.length;
+				var prevkeyWidth = 0;
+				for (h = 0; h < kl; h++) {
+
+					// JDR: override the default key width if needed
+					if (typeof myKeyboard.rows[j].keys[h].w === "undefined") {
+						tmpkeyWidth = keyWidth;
+					}
+					else {
+						tmpkeyWidth = myKeyboard.rows[j].keys[h].w;
+					}
+
+					myY = ((rowOffset + keyHeight) * j) + startDrawY;
+
+					// JDR: if we're at the start, we add on the initial draw offset
+					if (h == 0) {
+						myX = keyOffset + prevkeyWidth + startDrawX;
+					}
+					else {
+						myX = keyOffset + prevkeyWidth;
+					}
+					prevkeyWidth = myX + tmpkeyWidth;
+
+					addKey(myX, myY, tmpkeyWidth, keyHeight, myKeyboard.rows[j].keys[h])
+				}
+
+			}
+
+
+			setInterval(draw, 100);
+
+		};
+
+
+		/**
+		* Implement new methods on the canvas 2d context 
+		*	>> fillRectR() draw a solid rounded rectangle
+		*   >> strokeRectR() draw an outline of a rounded rectangle
+		*
+		* via
+		* http://www.supercalifrigginawesome.com/Extending-Canvas-to-Draw-Rounded-Rectangles
+		*/
+		Object.getPrototypeOf(document.createElement('canvas').getContext('2d')).fillRectR = function (x, y, w, h, r) {
+			if (typeof r === "undefined") {
+				r = 5;
+			}
+			this.beginPath();
+			this.moveTo(x + r, y);
+			this.lineTo(x + w - r, y);
+			this.quadraticCurveTo(x + w, y, x + w, y + r);
+			this.lineTo(x + w, y + h - r);
+			this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+			this.lineTo(x + r, y + h);
+			this.quadraticCurveTo(x, y + h, x, y + h - r);
+			this.lineTo(x, y + r);
+			this.quadraticCurveTo(x, y, x + r, y);
+			this.closePath();
+			this.fill();
+		};
+
+		Object.getPrototypeOf(document.createElement('canvas').getContext('2d')).strokeRectR = function (x, y, w, h, r) {
+			if (typeof r === "undefined") {
+				r = 5;
+			}
+			this.beginPath();
+			this.moveTo(x + r, y);
+			this.lineTo(x + w - r, y);
+			this.quadraticCurveTo(x + w, y, x + w, y + r);
+			this.lineTo(x + w, y + h - r);
+			this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+			this.lineTo(x + r, y + h);
+			this.quadraticCurveTo(x, y + h, x, y + h - r);
+			this.lineTo(x, y + r);
+			this.quadraticCurveTo(x, y, x + r, y);
+			this.closePath();
+			this.stroke();
+		};
+
+
+		//Init
+		window.onload = function () {
+
+			var times = new Date();
+			startTime = times.getTime(); loadUp();
+		};
+
+		function gotoLesson(ind) {
+			lessonIndex = ind;
+		}
+
+	</script>
+
+</head>
+
+<body>
+
+	<div class="legends">
+		<div id="lesson"></div>
+		<div id="wpm"></div>
+	</div>
+
+	<div id="wrapper">
+		<canvas id="canvas" height="450px;" width="860px;"></canvas>
+	</div>
+
+	<div class="lessons-button">
+		<button class="btn btn-success" onclick="gotoLesson(1);" type="submit" name="GET" value="Default">Lessons
+			1</button>
+		<button class="btn btn-success" onclick="gotoLesson(2);" type="submit" name="GET" value="Default">Lessons
+			2</button>
+		<button class="btn btn-success" onclick="gotoLesson(3);" type="submit" name="GET" value="Default">Lessons
+			3</button>
+		<button class="btn btn-success" onclick="gotoLesson(4);" type="submit" name="GET" value="Default">Lessons
+			4</button>
+		<button class="btn btn-success" onclick="gotoLesson(5);" type="submit" name="GET" value="Default">Lessons
+			5</button>
+		<button class="btn btn-success" onclick="gotoLesson(6);" type="submit" name="GET" value="Default">Lessons
+			6</button>
+		<button class="btn btn-success" onclick="gotoLesson(7);" type="submit" name="GET" value="Default">Lessons
+			7</button>
+	</div>
+	<div id="footer">
+		<p>
+			Developed By: Bhupal Sapkota<br />
+			<a href="http://twitter.com/bhu1st">@bhu1st</a> &bull; <a href="http://github.com/bhu1st/typemandu">Github</a> &bull;
+			<a href="https://www.learntyping.org">Lessons Reference</a>
+		</p>
+	</div>
+
+</body>
+
+</html>
